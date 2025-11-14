@@ -1,0 +1,91 @@
+╔════════════════════════════════════════════════════════════╗
+║  🚀 KRİPTO TRADING BOT - HIZLI BAŞLANGIÇ                  ║
+╚════════════════════════════════════════════════════════════╝
+
+✅ KURULUM TAMAMLANDI! Şimdi ne yapmalı?
+
+═══════════════════════════════════════════════════════════════
+
+📋 GEREKLİ ADIMLAR (Sırayla):
+
+1️⃣  BINANCE API ANAHTARI ALIN (10 dk)
+   └─ Testnet (Önerilen): https://testnet.binancefuture.com
+   └─ GitHub ile giriş yapın
+   └─ API Key oluşturun
+   └─ ✅ Enable Reading ve Futures - AÇIK
+   └─ ❌ Enable Withdrawals - KAPALI (Güvenlik!)
+
+2️⃣  .env DOSYASI OLUŞTURUN (5 dk)
+   └─ cp .env.example .env
+   └─ nano .env
+   └─ BINANCE_API_KEY ve SECRET'i girin
+   └─ BINANCE_TESTNET=true yapın
+
+3️⃣  TELEGRAM BOT KURUN (10 dk - Opsiyonel)
+   └─ @BotFather'a gidin
+   └─ /newbot komutunu kullanın
+   └─ Token'ı .env dosyasına ekleyin
+   └─ Chat ID'yi bulun ve ekleyin
+
+4️⃣  DATABASE BAŞLATIN (2 dk)
+   └─ docker-compose up -d timescaledb redis
+   └─ # veya
+   └─ brew services start postgresql@15
+
+5️⃣  SİSTEMİ TEST EDİN (1 dk)
+   └─ source venv/bin/activate
+   └─ python setup_check.py
+
+═══════════════════════════════════════════════════════════════
+
+🎯 HIZLI TEST (Paper Trading):
+
+   cd /Users/huseynli99/Downloads/cursor/crypto_trading_bot
+   source venv/bin/activate
+   python main.py --paper --testnet
+
+═══════════════════════════════════════════════════════════════
+
+📚 DETAYLI DOKÜMANTASYON:
+
+   • HIZLI_BASLANGIÇ.md    → Adım adım rehber
+   • DEPLOYMENT_GUIDE.md   → Detaylı kurulum
+   • PROJECT_SUMMARY.md    → Sistem özeti
+   • KURULUM.md            → Türkçe kurulum
+
+═══════════════════════════════════════════════════════════════
+
+⚠️  ÖNEMLİ NOTLAR:
+
+   • İLK TESTLER MUTLAKA TESTNET İLE!
+   • Withdrawal iznini ASLA açmayın
+   • Küçük sermaye ile başlayın ($100-500)
+   • 7 gün paper trading yapın
+   • Günlük logları kontrol edin
+
+═══════════════════════════════════════════════════════════════
+
+🆘 SORUN YAŞIYORSANIZ:
+
+   1. python setup_check.py çalıştırın
+   2. logs/trading.log dosyasını kontrol edin
+   3. HIZLI_BASLANGIÇ.md'deki "Sorun Giderme" bölümüne bakın
+
+═══════════════════════════════════════════════════════════════
+
+✅ HAZIRLIK KONTROL LİSTESİ:
+
+   [ ] Binance testnet API anahtarı alındı
+   [ ] .env dosyası oluşturuldu ve dolduruldu
+   [ ] BINANCE_TESTNET=true yapıldı
+   [ ] Database başlatıldı
+   [ ] python setup_check.py çalıştırıldı
+   [ ] Tüm kontroller yeşil ✅
+
+═══════════════════════════════════════════════════════════════
+
+🚀 BAŞARILAR!
+
+   Sorularınız için: HIZLI_BASLANGIÇ.md
+   
+═══════════════════════════════════════════════════════════════

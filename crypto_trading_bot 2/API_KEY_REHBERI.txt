@@ -1,0 +1,57 @@
+╔════════════════════════════════════════════════════════════╗
+║  🔑 TESTNET API KEY ALMA REHBERİ                          ║
+╚════════════════════════════════════════════════════════════╝
+
+⚠️  ÖNEMLİ: Ana hesap API key'i ÇALIŞMAZ!
+   MUTLAKA TESTNET API KEY kullanın!
+
+═══════════════════════════════════════════════════════════════
+
+📋 ADIM ADIM:
+
+1️⃣  Testnet Sitesine Gidin:
+   https://testnet.binancefuture.com/
+
+2️⃣  GitHub ile Giriş Yapın:
+   - "Connect with GitHub" butonuna tıklayın
+   - GitHub hesabınızla giriş yapın
+
+3️⃣  API Key Oluşturun:
+   - Sağ üstte kullanıcı adınıza tıklayın
+   - "API Key" seçeneğine tıklayın
+   - "Create API" butonuna tıklayın
+
+4️⃣  İzinleri Ayarlayın:
+   ✅ Enable Reading - AÇIK
+   ✅ Enable Futures - AÇIK
+   ❌ Enable Withdrawals - KAPALI (GÜVENLİK!)
+
+5️⃣  API Key ve Secret Key'i Kopyalayın:
+   - API Key: uzun bir string (örn: abc123...)
+   - Secret Key: daha uzun bir string
+   - ⚠️  Secret Key sadece bir kez gösterilir!
+
+6️⃣  .env Dosyasına Ekleyin:
+   BINANCE_API_KEY=buraya_api_key_yapıştırın
+   BINANCE_API_SECRET=buraya_secret_key_yapıştırın
+   BINANCE_TESTNET=true
+
+═══════════════════════════════════════════════════════════════
+
+✅ DOĞRU FORMAT:
+   BINANCE_API_KEY=abc123xyz456
+   BINANCE_API_SECRET=def789uvw012
+   (Tırnak işareti YOK!)
+
+❌ YANLIŞ FORMAT:
+   BINANCE_API_KEY="abc123xyz456"
+   BINANCE_API_KEY='abc123xyz456'
+   BINANCE_API_KEY= abc123xyz456
+   (Tırnak veya boşluk VAR!)
+
+═══════════════════════════════════════════════════════════════
+
+🔍 KONTROL:
+   python setup_check.py
+
+═══════════════════════════════════════════════════════════════

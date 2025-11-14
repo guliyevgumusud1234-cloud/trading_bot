@@ -1,0 +1,484 @@
+# Risk Limits and Circuit Breakers Configuration
+# Comprehensive risk management rules
+
+# ============================================
+# POSITION LIMITS
+# ============================================
+position_limits:
+  # Maximum Positions
+  max_total_positions: 8  # Maximum open positions across all strategies
+  max_positions_per_strategy:
+    trend: 3
+    reversion: 3
+    momentum: 2
+    arbitrage: 2
+    rl: 3
+  
+  # Per Symbol
+  max_positions_per_symbol: 2  # Max 2 positions per symbol
+  
+  # Position Size
+  min_position_size_usd: 10  # Minimum $10
+  max_position_size_usd: 2000  # Maximum $2000 per position (20% of $10k capital)
+  max_position_pct_capital: 0.20  # Max 20% of capital per position
+
+# ============================================
+# LEVERAGE LIMITS
+# ============================================
+leverage_limits:
+  # Global Limits
+  max_leverage_per_position: 5  # Hard limit per position
+  max_portfolio_leverage: 3  # Total portfolio leverage
+  
+  # Strategy-Specific (already defined in config.yaml, repeated for clarity)
+  strategy_max_leverage:
+    trend: 3
+    reversion: 2
+    momentum: 5
+    arbitrage: 1
+    rl: 3
+  
+  # Symbol-Specific (for volatile assets)
+  symbol_max_leverage:
+    BTC/USDT: 5
+    ETH/USDT: 5
+    BNB/USDT: 3
+    SOL/USDT: 3
+    ARB/USDT: 2
+    MATIC/USDT: 2
+    AVAX/USDT: 2
+    LINK/USDT: 2
+  
+  # Dynamic Adjustment
+  volatility_adjustment:
+    enabled: true
+    high_volatility_multiplier: 0.5  # Halve leverage in high vol
+    low_volatility_multiplier: 1.2  # 20% increase in low vol
+    volatility_lookback_bars: 100
+
+# ============================================
+# LOSS LIMITS (CIRCUIT BREAKERS)
+# ============================================
+loss_limits:
+  # Per Trade
+  per_trade:
+    max_loss_pct: 0.02  # 2% max loss per trade
+    max_loss_usd: 200  # $200 hard stop per trade
+    
+    # Trailing Stop Activation
+    trailing_stop_profit_threshold: 0.015  # Activate after 1.5% profit
+    trailing_stop_distance_pct: 0.01  # Trail 1% below high
+  
+  # Per Day
+  per_day:
+    max_loss_pct: 0.05  # 5% daily loss limit
+    max_loss_usd: 500  # $500 daily loss
+    max_trades: 20  # Maximum 20 trades per day
+    
+    # Actions on Breach
+    action_on_breach: stop_trading  # stop_trading, reduce_size, pause
+    pause_duration_hours: 24  # Pause for 24h if daily limit hit
+  
+  # Per Week
+  per_week:
+    max_loss_pct: 0.10  # 10% weekly loss limit
+    max_loss_usd: 1000  # $1000 weekly loss
+    
+    # Actions
+    action_on_breach: pause_trading
+    pause_duration_days: 7  # Pause for 1 week
+  
+  # Per Month
+  per_month:
+    max_loss_pct: 0.15  # 15% monthly loss limit
+    max_loss_usd: 1500  # $1500 monthly loss
+    
+    # Actions
+    action_on_breach: full_stop  # Require manual intervention
+
+# ============================================
+# DRAWDOWN PROTECTION
+# ============================================
+drawdown_protection:
+  # Drawdown Levels
+  levels:
+    # Normal
+    normal:
+      threshold: 0.05  # < 5% drawdown
+      action: none
+      position_size_multiplier: 1.0
+      leverage_multiplier: 1.0
+    
+    # Caution
+    caution:
+      threshold: 0.10  # 10% drawdown
+      action: reduce_risk
+      position_size_multiplier: 0.75  # 75% of normal size
+      leverage_multiplier: 0.8  # 80% of normal leverage
+      alert: true
+    
+    # Warning
+    warning:
+      threshold: 0.15  # 15% drawdown
+      action: significant_reduction
+      position_size_multiplier: 0.5  # 50% of normal size
+      leverage_multiplier: 0.6  # 60% of normal leverage
+      alert: critical
+      close_losing_positions: true  # Close positions with losses
+    
+    # Emergency
+    emergency:
+      threshold: 0.20  # 20% drawdown
+      action: emergency_stop
+      position_size_multiplier: 0.0  # Stop all trading
+      close_all_positions: true
+      require_manual_restart: true
+      alert: emergency
+  
+  # Recovery Mode
+  recovery:
+    enabled: true
+    recovery_threshold: 0.05  # When DD reduces to 5%, start recovery
+    gradual_scale_up: true
+    scale_up_rate: 0.1  # Increase size by 10% per day
+    max_recovery_days: 20  # Max 20 days to return to normal
+
+# ============================================
+# CORRELATION MANAGEMENT
+# ============================================
+correlation_management:
+  # Correlation Threshold
+  high_correlation_threshold: 0.7  # Correlation > 0.7 is high
+  
+  # Limits
+  max_highly_correlated_positions: 3  # Max 3 positions with correlation > 0.7
+  
+  # Actions
+  correlation_action:
+    reduce_size: true  # Reduce size of correlated positions
+    size_reduction_factor: 0.3  # Reduce by 30% each
+    
+    block_new_correlated: true  # Don't open new positions if correlated
+  
+  # Calculation
+  correlation_lookback_periods: 100  # Use last 100 bars for correlation
+  correlation_update_frequency: 1h  # Update every hour
+
+# ============================================
+# MARGIN MANAGEMENT
+# ============================================
+margin_management:
+  # Margin Requirements
+  maintenance_margin_buffer: 1.5  # Keep 1.5x required maintenance margin
+  initial_margin_buffer: 1.3  # Keep 1.3x initial margin
+  
+  # Warning Levels
+  warning_threshold: 1.3  # Warn at 1.3x maintenance margin
+  critical_threshold: 1.2  # Critical at 1.2x
+  emergency_threshold: 1.1  # Emergency close at 1.1x
+  
+  # Actions
+  on_warning:
+    - alert
+    - reduce_leverage
+  
+  on_critical:
+    - alert_critical
+    - close_losing_positions
+    - reduce_all_positions: 0.5  # Reduce all by 50%
+  
+  on_emergency:
+    - emergency_close_all
+    - pause_trading
+  
+  # Auto-Deleveraging
+  auto_deleverage:
+    enabled: true
+    trigger_threshold: 1.25  # Trigger at 1.25x margin
+    target_buffer: 1.5  # Deleverage to 1.5x
+
+# ============================================
+# VALUE AT RISK (VaR)
+# ============================================
+value_at_risk:
+  # VaR Calculation
+  confidence_level: 0.95  # 95% confidence
+  lookback_periods: 100  # Last 100 periods
+  calculation_method: historical  # historical, parametric, monte_carlo
+  
+  # Limits
+  daily_var_limit_pct: 0.03  # 3% daily VaR limit
+  weekly_var_limit_pct: 0.08  # 8% weekly VaR limit
+  
+  # Conditional VaR (CVaR / Expected Shortfall)
+  cvar_limit_pct: 0.05  # 5% CVaR limit
+  
+  # Actions on Breach
+  on_var_breach:
+    - alert
+    - reduce_exposure: 0.2  # Reduce by 20%
+
+# ============================================
+# LIQUIDATION PROTECTION
+# ============================================
+liquidation_protection:
+  # Distance Requirements
+  min_distance_from_liquidation: 0.50  # Stay 50% away from liquidation price
+  warning_distance: 0.30  # Warn at 30% distance
+  critical_distance: 0.20  # Critical at 20% distance
+  
+  # Actions
+  on_warning:
+    - alert
+    - reduce_leverage: 0.2  # Reduce leverage by 20%
+  
+  on_critical:
+    - alert_critical
+    - reduce_position_size: 0.5  # Reduce size by 50%
+  
+  # Monitoring
+  check_frequency: 10  # Check every 10 seconds
+  
+  # Buffer Zones
+  never_cross_threshold: 0.15  # Never go below 15% distance
+
+# ============================================
+# VOLATILITY LIMITS
+# ============================================
+volatility_limits:
+  # ATR-Based
+  max_atr_pct: 0.10  # Don't trade if ATR > 10%
+  high_volatility_threshold: 0.05  # ATR > 5% is high
+  
+  # Actions on High Volatility
+  high_volatility_actions:
+    reduce_leverage: true
+    leverage_reduction_factor: 0.5  # Halve leverage
+    
+    widen_stops: true
+    stop_widening_factor: 1.5  # 1.5x wider stops
+    
+    reduce_position_size: true
+    size_reduction_factor: 0.7  # 70% of normal
+  
+  # Volatility Spike Detection
+  volatility_spike:
+    detection_enabled: true
+    spike_threshold: 2.0  # ATR > 2x average
+    spike_lookback: 20  # Compare to last 20 bars
+    
+    # Actions on Spike
+    on_spike:
+      - pause_new_trades: true
+      - pause_duration_minutes: 30
+      - tighten_stops: true
+
+# ============================================
+# CONCENTRATION LIMITS
+# ============================================
+concentration_limits:
+  # Single Symbol
+  max_exposure_per_symbol_pct: 0.30  # Max 30% of capital in one symbol
+  
+  # Single Strategy
+  max_exposure_per_strategy_pct: 0.40  # Max 40% in one strategy
+  
+  # Sector/Category
+  max_exposure_per_sector_pct: 0.50  # Max 50% in one sector (e.g., L1s, DeFi)
+  
+  # Long vs Short
+  max_net_exposure_pct: 0.60  # Max 60% net long or short
+  max_gross_exposure_pct: 3.0  # Max 300% gross (with leverage)
+
+# ============================================
+# TIME-BASED LIMITS
+# ============================================
+time_based_limits:
+  # Maximum Position Duration
+  max_position_duration_hours: 168  # 7 days maximum
+  warn_duration_hours: 120  # Warn at 5 days
+  
+  # Time-Based Exits
+  force_exit_on_timeout: true
+  timeout_exit_reason: stale_position
+  
+  # Holding Time Penalties
+  holding_penalty:
+    enabled: true
+    threshold_hours: 48  # Penalty after 48h
+    penalty_per_hour: 0.0001  # 0.01% per hour
+
+# ============================================
+# SLIPPAGE AND EXECUTION LIMITS
+# ============================================
+execution_limits:
+  # Slippage
+  max_slippage_pct: 0.002  # 0.2% max acceptable slippage
+  slippage_warning_pct: 0.001  # 0.1% triggers warning
+  
+  # Reject trades with high slippage
+  reject_on_high_slippage: true
+  
+  # Spread Limits
+  max_spread_pct: 0.005  # 0.5% max spread
+  max_spread_warning_pct: 0.003  # 0.3% warning
+  
+  # Liquidity Requirements
+  min_liquidity_depth_usd: 100000  # $100k min order book depth
+  min_24h_volume_usd: 10000000  # $10M min daily volume
+  
+  # Order Size Limits (relative to liquidity)
+  max_order_size_pct_volume: 0.01  # Max 1% of recent volume
+  max_order_size_pct_book: 0.05  # Max 5% of order book depth
+
+# ============================================
+# FUNDING RATE LIMITS
+# ============================================
+funding_rate_limits:
+  # Directional Trading Limits
+  max_positive_funding: 0.003  # Don't go long if funding > 0.3%
+  max_negative_funding: -0.003  # Don't go short if funding < -0.3%
+  
+  # Holding Limits
+  max_periods_in_extreme_funding: 3  # Max 3 funding periods (24h) in extreme
+  
+  # Cost Tracking
+  track_funding_costs: true
+  max_cumulative_funding_cost_pct: 0.02  # Max 2% funding cost per position
+
+# ============================================
+# STRESS SCENARIOS
+# ============================================
+stress_scenarios:
+  # Pre-defined stress tests
+  scenarios:
+    # Flash Crash
+    flash_crash:
+      price_drop_pct: 0.20  # 20% instant drop
+      action: emergency_stop
+      max_loss_tolerance: 0.10  # Max 10% loss in this scenario
+    
+    # Exchange Outage
+    exchange_outage:
+      duration_minutes: 60
+      action: close_all_positions
+      use_backup_exchange: false  # Not implemented yet
+    
+    # Extreme Volatility
+    extreme_volatility:
+      atr_multiplier: 5  # ATR 5x normal
+      action: reduce_exposure
+      exposure_reduction: 0.7  # Reduce to 30%
+  
+  # Stress Test Frequency
+  run_stress_tests: false  # Enable for testing
+  test_frequency_hours: 168  # Weekly
+
+# ============================================
+# EMERGENCY PROCEDURES
+# ============================================
+emergency_procedures:
+  # Emergency Stop Conditions
+  emergency_stop_conditions:
+    - drawdown_exceeds_20pct
+    - system_error
+    - exchange_api_failure
+    - liquidation_imminent
+    - flash_crash_detected
+  
+  # Emergency Actions
+  emergency_actions:
+    close_all_positions: true
+    cancel_all_orders: true
+    pause_trading: true
+    send_critical_alert: true
+    log_emergency_state: true
+    require_manual_restart: true
+  
+  # Recovery Checklist
+  recovery_checklist:
+    - verify_system_integrity
+    - check_database_consistency
+    - reconcile_positions
+    - verify_balance
+    - analyze_root_cause
+    - implement_fixes
+    - gradual_restart
+
+# ============================================
+# MONITORING AND ALERTS
+# ============================================
+monitoring:
+  # Real-Time Monitoring Frequency
+  position_check_frequency_seconds: 1  # Check positions every second
+  risk_check_frequency_seconds: 5  # Check risk limits every 5 seconds
+  margin_check_frequency_seconds: 10  # Check margin every 10 seconds
+  
+  # Alert Thresholds
+  alert_on:
+    # Loss Alerts
+    single_trade_loss_pct: 0.015  # Alert on 1.5% loss
+    daily_loss_pct: 0.03  # Alert on 3% daily loss
+    
+    # Drawdown Alerts
+    drawdown_5pct: true
+    drawdown_10pct: true
+    drawdown_15pct: true
+    drawdown_20pct: true
+    
+    # Risk Limit Violations
+    any_risk_violation: true
+    
+    # Position Alerts
+    position_limit_reached: true
+    correlation_limit_reached: true
+    leverage_limit_reached: true
+    
+    # System Alerts
+    api_latency_high: true  # > 500ms
+    websocket_disconnected: true
+    database_error: true
+  
+  # Alert Channels
+  alert_channels:
+    telegram: true
+    email: false
+    sms: false
+    dashboard: true
+    log_file: true
+
+# ============================================
+# OVERRIDE SETTINGS
+# ============================================
+overrides:
+  # Allow manual override of risk limits (use with caution!)
+  allow_manual_override: false
+  require_2fa_for_override: true
+  log_all_overrides: true
+  max_override_duration_hours: 24
+
+# ============================================
+# REPORTING
+# ============================================
+reporting:
+  # Risk Reports
+  generate_daily_risk_report: true
+  generate_weekly_risk_report: true
+  generate_monthly_risk_report: true
+  
+  # Report Contents
+  report_includes:
+    - current_positions
+    - risk_metrics
+    - var_cvar
+    - drawdown_analysis
+    - correlation_matrix
+    - limit_utilization
+    - violations_log
+
+# ============================================
+# VERSION
+# ============================================
+version: "1.0.0"
+last_updated: "2024-11-12"
+

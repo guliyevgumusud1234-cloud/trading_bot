@@ -1,0 +1,156 @@
+version: '3.8'
+
+services:
+  # Main Trading Bot
+  trading_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crypto_trading_bot
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - BINANCE_API_KEY=${BINANCE_API_KEY}
+      - BINANCE_API_SECRET=${BINANCE_API_SECRET}
+      - BINANCE_TESTNET=${BINANCE_TESTNET:-false}
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-trading_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./config:/app/config
+    depends_on:
+      - timescaledb
+      - redis
+    networks:
+      - trading_network
+    command: python main.py ${TRADING_MODE:---paper}
+
+  # TimescaleDB (PostgreSQL with time-series extensions)
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: trading_timescaledb
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${DB_NAME:-trading_db}
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - trading_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (Caching)
+  redis:
+    image: redis:7-alpine
+    container_name: trading_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - trading_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prometheus (Metrics Collection)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: trading_prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - trading_network
+    depends_on:
+      - trading_bot
+
+  # Grafana (Visualization)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: trading_grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3000:3000"
+    networks:
+      - trading_network
+    depends_on:
+      - prometheus
+      - timescaledb
+
+  # PgAdmin (Database Management - Optional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: trading_pgadmin
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@trading.local}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - trading_network
+    depends_on:
+      - timescaledb
+    profiles:
+      - tools
+
+networks:
+  trading_network:
+    driver: bridge
+
+volumes:
+  timescale_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+

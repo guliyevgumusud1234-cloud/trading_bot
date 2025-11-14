@@ -1,0 +1,342 @@
+# Main Configuration for Crypto Trading Bot
+# This file contains all core system settings
+
+# ============================================
+# CAPITAL MANAGEMENT
+# ============================================
+capital:
+  initial: 10000  # Starting capital in USDT
+  max_per_trade: 200  # Max capital per trade (2% of initial)
+  min_trade_size: 10  # Minimum trade size in USDT
+  reserve_capital: 0.05  # Keep 5% in reserve
+
+# ============================================
+# LEVERAGE SETTINGS
+# ============================================
+leverage:
+  max_portfolio: 3  # Maximum total portfolio leverage
+  strategy_limits:
+    trend: 3  # Trend following max leverage
+    reversion: 2  # Mean reversion max leverage
+    momentum: 5  # Momentum breakout max leverage
+    arbitrage: 1  # Funding arbitrage max leverage (low risk)
+    rl: 3  # Deep RL max leverage
+  
+  # Dynamic leverage based on volatility
+  volatility_adjustment:
+    enabled: true
+    low_vol_multiplier: 1.2  # Increase leverage in low vol
+    high_vol_multiplier: 0.6  # Decrease leverage in high vol
+
+# ============================================
+# RISK LIMITS (Circuit Breakers)
+# ============================================
+risk:
+  # Per Trade
+  max_loss_per_trade: 0.02  # 2% max loss per trade
+  max_leverage_per_trade: 5  # Hard limit
+  
+  # Per Day
+  max_trades_per_day: 20
+  max_loss_per_day: 0.05  # 5% daily loss triggers stop
+  
+  # Per Week
+  max_loss_per_week: 0.10  # 10% weekly loss triggers pause
+  
+  # Portfolio
+  max_open_positions: 8
+  max_correlated_positions: 3  # Max highly correlated positions
+  correlation_threshold: 0.7  # Correlation > 0.7 considered high
+  
+  # Drawdown
+  max_drawdown: 0.20  # 20% max drawdown triggers emergency stop
+  caution_drawdown: 0.10  # 10% drawdown triggers caution mode
+  reduce_risk_drawdown: 0.15  # 15% drawdown reduces position sizes
+  
+  # Value at Risk
+  daily_var_95: 0.03  # 95% VaR limit (3%)
+  
+  # Margin
+  maintenance_margin_buffer: 1.5  # Keep 1.5x required margin
+  emergency_margin_threshold: 1.2  # Emergency close at 1.2x
+
+# ============================================
+# TRADING SYMBOLS
+# ============================================
+symbols:
+  primary:  # Main trading pairs (higher allocation)
+    - BTC/USDT
+    - ETH/USDT
+    - BNB/USDT
+    - SOL/USDT
+  
+  secondary:  # Diversification pairs (lower allocation)
+    - ARB/USDT
+    - MATIC/USDT
+    - AVAX/USDT
+    - LINK/USDT
+  
+  # Symbol selection criteria
+  selection_criteria:
+    min_24h_volume: 500000000  # $500M minimum daily volume
+    min_liquidity_depth: 1000000  # $1M order book depth
+    volatility_range:
+      min: 0.03  # 3% minimum daily volatility
+      max: 0.08  # 8% maximum daily volatility
+
+# ============================================
+# TIMEFRAMES
+# ============================================
+timeframes:
+  primary: 15m  # Main timeframe for trading execution
+  secondary:
+    - 5m  # Microstructure and entry/exit optimization
+    - 1h  # Trend confirmation
+    - 4h  # Major trend and regime detection
+    - 1d  # Market context and risk regime
+  
+  # Data lookback periods
+  lookback:
+    short: 100  # bars for short-term indicators
+    medium: 500  # bars for medium-term indicators
+    long: 1000  # bars for long-term indicators
+
+# ============================================
+# STRATEGY ALLOCATION
+# ============================================
+strategy_weights:
+  trend: 0.35  # Increased from 0.30 (RL's share redistributed)
+  reversion: 0.30  # Increased from 0.25
+  momentum: 0.25  # Increased from 0.20
+  arbitrage: 0.10  # Same
+  rl: 0.00  # Disabled for backtest
+
+strategies:
+  # Default weights (adjusted by meta-strategy)
+  default_weights:
+    trend: 0.30
+    reversion: 0.25
+    momentum: 0.20
+    arbitrage: 0.10
+    rl: 0.15
+  
+  # Regime-based allocation
+  trending_market:  # ADX > 30
+    trend: 0.40
+    momentum: 0.30
+    rl: 0.20
+    reversion: 0.05
+    arbitrage: 0.05
+  
+  ranging_market:  # ADX < 20
+    reversion: 0.40
+    arbitrage: 0.25
+    rl: 0.25
+    trend: 0.05
+    momentum: 0.05
+  
+  high_volatility:  # ATR > threshold
+    arbitrage: 0.35
+    reversion: 0.30
+    rl: 0.25
+    trend: 0.05
+    momentum: 0.05
+  
+  extreme_funding:  # Funding > 0.1%
+    arbitrage: 0.50
+    reversion: 0.20
+    rl: 0.20
+    trend: 0.05
+    momentum: 0.05
+  
+  # Enable/disable strategies
+  enabled:
+    trend: true
+    reversion: true
+    momentum: true
+    arbitrage: false  # Requires multi-exchange setup
+    rl: true
+
+# ============================================
+# TRADING HOURS
+# ============================================
+trading_hours:
+  enabled: false  # Set to true to enable time-based trading
+  timezone: UTC
+  active_hours:
+    start: 0  # 24/7 trading for crypto
+    end: 24
+  
+  # Avoid trading around funding times
+  avoid_funding_window: true
+  funding_window_minutes: 5  # Avoid 5 min before funding
+
+# ============================================
+# EXECUTION SETTINGS
+# ============================================
+execution:
+  # Order types
+  default_order_type: limit  # 'limit' or 'market'
+  urgency_threshold: 0.8  # Use market orders if confidence > 0.8
+  
+  # Limit orders
+  limit_offset_pct: 0.0005  # 0.05% above/below mid price
+  order_timeout: 300  # 5 minutes
+  
+  # Slippage
+  max_slippage_pct: 0.002  # 0.2% max acceptable slippage
+  slippage_alert_threshold: 0.001  # 0.1% triggers alert
+  
+  # Order splitting (TWAP)
+  use_twap: true
+  twap_threshold: 5000  # Split orders > $5000
+  twap_duration: 300  # 5 minute window
+  twap_splits: 5  # Number of child orders
+  
+  # Retries
+  max_retries: 3
+  retry_delay: 2  # seconds
+
+# ============================================
+# MODEL SETTINGS
+# ============================================
+models:
+  # Feature engineering
+  num_features: 200  # Target number of features
+  feature_selection:
+    enabled: true
+    importance_threshold: 0.001
+    top_n: 50  # Use top 50 features per strategy
+  
+  # Training
+  train_test_split: 0.8
+  validation_split: 0.1
+  min_train_samples: 10000
+  
+  # Update frequency
+  retraining:
+    enabled: true
+    frequency_days: 7  # Retrain weekly
+    performance_threshold: 0.5  # Retrain if Sharpe < 0.5
+    regime_change_trigger: true
+  
+  # Model paths
+  save_path: ./models
+  checkpoint_frequency: 1000  # Save every 1000 iterations
+
+# ============================================
+# DATA SETTINGS
+# ============================================
+data:
+  # Historical data
+  history_period_days: 730  # 2 years minimum
+  
+  # Real-time
+  websocket_enabled: true
+  websocket_reconnect_delay: 5
+  websocket_max_retries: 10
+  
+  # Data quality
+  max_missing_pct: 0.05  # Max 5% missing data
+  outlier_std: 5  # Remove outliers > 5 std dev
+  
+  # Caching
+  cache_enabled: true
+  cache_ttl: 300  # 5 minutes
+
+# ============================================
+# MONITORING
+# ============================================
+monitoring:
+  # Metrics
+  prometheus:
+    enabled: true
+    port: 9090
+  
+  # Dashboards
+  grafana:
+    enabled: true
+    port: 3000
+  
+  # Alerts
+  alerts:
+    telegram:
+      enabled: true
+      alert_on:
+        - large_loss  # Loss > 2%
+        - risk_violation
+        - system_error
+        - daily_summary
+    
+    email:
+      enabled: false
+  
+  # Logging
+  log_level: INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_to_file: true
+  log_rotation: daily
+  log_retention_days: 30
+
+# ============================================
+# BACKTESTING
+# ============================================
+backtest:
+  # Walk-forward analysis
+  walk_forward:
+    train_period_days: 90
+    test_period_days: 30
+    min_windows: 6
+  
+  # Monte Carlo
+  monte_carlo:
+    num_simulations: 1000
+    confidence_level: 0.95
+  
+  # Performance targets
+  targets:
+    min_sharpe: 1.0
+    max_drawdown: 0.15
+    min_win_rate: 0.45
+    min_profit_factor: 1.5
+
+# ============================================
+# PAPER TRADING
+# ============================================
+paper_trading:
+  enabled: true  # Enable paper trading by default
+  initial_balance: 10000
+  track_slippage: true
+  track_fees: true
+  realistic_execution: true  # Simulate realistic execution delays
+
+# ============================================
+# FEATURE FLAGS
+# ============================================
+features:
+  enable_rl_strategy: true
+  enable_arbitrage: false  # Requires multi-exchange
+  enable_sentiment_analysis: true
+  enable_order_book_features: true
+  enable_liquidation_data: true
+  enable_adaptive_allocation: true
+  enable_correlation_management: true
+
+# ============================================
+# PERFORMANCE TUNING
+# ============================================
+performance:
+  max_workers: 4  # Number of worker threads
+  batch_size: 1000  # Batch size for feature calculation
+  use_multiprocessing: true
+  cache_features: true
+
+# ============================================
+# MINIMUM TRADE CONFIDENCE
+# ============================================
+min_trade_confidence: 0.6  # 60% minimum confidence to take trade
+
+# ============================================
+# VERSION
+# ============================================
+version: "1.0.0"
+
